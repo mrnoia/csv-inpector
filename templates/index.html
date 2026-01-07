@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Inspector</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Tabulator CSS -->
+    <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        .drop-zone {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .drop-zone.dragover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        
+        .table-container {
+            margin-top: 10px;
+        }
+        
+        .tabulator {
+            margin-top: 10px;
+        }
+        
+        .action-buttons {
+            margin-bottom: 15px;
+        }
+        
+        .file-info {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .spinner-border {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        /* Card View Styles */
+        .data-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .data-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .data-card .card-header {
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .data-card .field-pair {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+        
+        .data-card .field-name {
+            font-weight: 500;
+            color: #6c757d;
+            min-width: 120px;
+        }
+        
+        .data-card .field-value {
+            color: #212529;
+            text-align: right;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .data-card .field-value input {
+            width: 100%;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.9em;
+        }
+        
+        .suggestions-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.9em;
+        }
+        
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .suggestion-item .suggestion-text {
+            font-weight: 500;
+        }
+        
+        .suggestion-item .suggestion-count {
+            color: #6c757d;
+            font-size: 0.8em;
+            margin-left: 8px;
+        }
+        
+        .card-actions {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .card-actions button {
+            font-size: 0.8em;
+        }
+        
+        .display-4 {
+            font-size: 4rem;
+        }
+        
+        .border-primary {
+            border: 2px solid #0d6efd !important;
+        }
+        
+        .border-success {
+            border: 2px solid #198754 !important;
+        }
+        
+        .h-100 {
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                    CSV Inspector
+                </h1>
+                
+                <!-- Upload Section -->
+                <div class="card mb-4" id="uploadSection">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-cloud-upload"></i>
+                            Get Started
+                        </h5>
+                        
+                        <!-- Quick Actions -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card h-100 border-primary">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-folder-plus display-4 text-primary mb-3"></i>
+                                        <h6>Upload CSV File</h6>
+                                        <p class="text-muted small">Upload a new CSV file to inspect and edit</p>
+                                        <button class="btn btn-primary" onclick="showUploadArea()">
+                                            <i class="bi bi-upload"></i>
+                                            Choose File
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 border-success">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-database display-4 text-success mb-3"></i>
+                                        <h6>Load from Database</h6>
+                                        <p class="text-muted small">Load previously saved data from the database</p>
+                                        <button class="btn btn-success" onclick="showLoadModal()">
+                                            <i class="bi bi-folder-open"></i>
+                                            Browse Saved
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Area (Initially Hidden) -->
+                        <div id="uploadArea" class="d-none">
+                            <div class="drop-zone" id="dropZone">
+                                <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
+                                <p class="mt-3 mb-2">Drag and drop your CSV file here or click to browse</p>
+                                <p class="text-muted small">Maximum file size: 16MB</p>
+                                <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button class="btn btn-outline-secondary" onclick="hideUploadArea()">
+                                    <i class="bi bi-arrow-left"></i>
+                                    Back to Options
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Loading Indicator -->
+                <div class="card mb-4 loading" id="loadingCard">
+                    <div class="card-body text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">Processing CSV file...</span>
+                    </div>
+                </div>
+                
+                <!-- Table Section -->
+                <div class="card d-none" id="tableSection">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="file-info" id="fileInfo">
+                                <strong>File:</strong> <span id="fileName"></span>
+                                <strong class="ms-3">Rows:</strong> <span id="rowCount"></span>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-3">
+                                <!-- View Toggle -->
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="viewToggle">
+                                    <label class="form-check-label" for="viewToggle">
+                                        <i class="bi bi-grid-3x3-gap"></i>
+                                        Card View
+                                    </label>
+                                </div>
+                                
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-sm" id="saveBtn">
+                                        <i class="bi bi-save"></i>
+                                        Save
+                                    </button>
+                                    <button class="btn btn-info btn-sm" id="loadBtn">
+                                        <i class="bi bi-folder-open"></i>
+                                        Load
+                                    </button>
+                                    <button class="btn btn-success btn-sm" id="downloadBtn">
+                                        <i class="bi bi-download"></i>
+                                        Download CSV
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" id="clearBtn">
+                                        <i class="bi bi-x-circle"></i>
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Search and Filter Controls -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="globalSearch" placeholder="Search all columns...">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-outline-secondary btn-sm" id="resetFiltersBtn">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                        Reset Filters
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" id="addRowBtn">
+                                        <i class="bi bi-plus-circle"></i>
+                                        Add Row
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabulator Table -->
+                        <div id="tableView" class="table-container">
+                            <div id="csvTable"></div>
+                        </div>
+                        
+                        <!-- Card View -->
+                        <div id="cardView" class="d-none">
+                            <div class="row" id="cardContainer"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Error Alert -->
+                <div class="alert alert-danger d-none" id="errorAlert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Error:</strong> <span id="errorMessage"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Modal -->
+    <div class="modal fade" id="saveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-save"></i>
+                        Save Data
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="saveName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="saveName" placeholder="Enter a name for this data">
+                    </div>
+                    <div class="mb-3">
+                        <label for="saveDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="saveDescription" rows="3" placeholder="Optional description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmSave">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Modal -->
+    <div class="modal fade" id="loadModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-folder-open"></i>
+                        Load Saved Data
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="savedDataList" class="list-group">
+                        <!-- Saved data will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Tabulator JS -->
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+    
+    <script>
+        let table;
+        let currentData = [];
+        let originalFileName = '';
+        let currentColumns = [];
+        let isCardView = false;
+        let nextRowId = 1;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const globalSearch = document.getElementById('globalSearch');
+            const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+            const addRowBtn = document.getElementById('addRowBtn');
+            const viewToggle = document.getElementById('viewToggle');
+            const saveBtn = document.getElementById('saveBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            const confirmSave = document.getElementById('confirmSave');
+
+            // File upload events - only add if elements exist
+            if (dropZone && fileInput) {
+                dropZone.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', handleFileSelect);
+                
+                // Drag and drop events
+                dropZone.addEventListener('dragover', handleDragOver);
+                dropZone.addEventListener('dragleave', handleDragLeave);
+                dropZone.addEventListener('drop', handleDrop);
+            }
+
+            // Button events - only add if elements exist
+            if (downloadBtn) downloadBtn.addEventListener('click', downloadCSV);
+            if (clearBtn) clearBtn.addEventListener('click', clearTable);
+            if (resetFiltersBtn) resetFiltersBtn.addEventListener('click', resetFilters);
+            if (addRowBtn) addRowBtn.addEventListener('click', addNewRow);
+            if (viewToggle) viewToggle.addEventListener('change', toggleView);
+            if (saveBtn) saveBtn.addEventListener('click', showSaveModal);
+            if (loadBtn) loadBtn.addEventListener('click', showLoadModal);
+            if (confirmSave) confirmSave.addEventListener('click', saveData);
+
+            // Search event
+            if (globalSearch) globalSearch.addEventListener('input', handleGlobalSearch);
+        }
+
+        function showUploadArea() {
+            document.getElementById('uploadArea').classList.remove('d-none');
+            
+            // Re-attach event listeners for upload functionality
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            
+            if (dropZone && fileInput) {
+                dropZone.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', handleFileSelect);
+                
+                // Drag and drop events
+                dropZone.addEventListener('dragover', handleDragOver);
+                dropZone.addEventListener('dragleave', handleDragLeave);
+                dropZone.addEventListener('drop', handleDrop);
+            }
+        }
+
+        function hideUploadArea() {
+            document.getElementById('uploadArea').classList.add('d-none');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function processFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showError('Please upload a CSV file.');
+                return;
+            }
+
+            if (file.size > 16 * 1024 * 1024) {
+                showError('File size exceeds 16MB limit.');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+                if (data.success) {
+                    originalFileName = file.name;
+                    displayTable(data.data, data.columns, file.name);
+                } else {
+                    showError(data.error || 'Error processing file.');
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                showError('Network error: ' + error.message);
+            });
+        }
+
+        function displayTable(data, columns, filename) {
+            currentData = data.map((row, index) => ({
+                ...row,
+                _rowId: nextRowId++
+            }));
+            currentColumns = columns;
+            
+            // Update file info
+            document.getElementById('fileName').textContent = filename;
+            document.getElementById('rowCount').textContent = data.length;
+            
+            // Create Tabulator table
+            const tableEl = document.getElementById('csvTable');
+            
+            // Add editor and formatter to columns
+            const enhancedColumns = columns.map(col => ({
+                ...col,
+                editor: "input",
+                headerFilter: "input",
+                headerFilterPlaceholder: `Filter ${col.title}...`
+            }));
+
+            table = new Tabulator(tableEl, {
+                data: currentData,
+                columns: enhancedColumns,
+                layout: "fitColumns",
+                responsiveLayout: "hide",
+                pagination: "local",
+                paginationSize: 25,
+                paginationSizeSelector: [10, 25, 50, 100],
+                movableColumns: true,
+                resizableRows: true,
+                tooltips: true,
+                history: true,
+                keybindings: {
+                    "undo": "ctrl + z",
+                    "redo": "ctrl + y",
+                }
+            });
+
+            // Show table section, hide upload section
+            document.getElementById('uploadSection').classList.add('d-none');
+            document.getElementById('tableSection').classList.remove('d-none');
+            
+            // Reset view to table view
+            isCardView = false;
+            document.getElementById('viewToggle').checked = false;
+            showTableView();
+        }
+
+        function handleGlobalSearch(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (searchTerm) {
+                // Filter currentData directly
+                const filteredData = currentData.filter(row => {
+                    for (let field in row) {
+                        if (field !== '_rowId' && row[field] && row[field].toString().toLowerCase().includes(searchTerm)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+                
+                // Update table with filtered data
+                if (table) {
+                    table.replaceData(filteredData);
+                }
+                
+                // Update card view if active
+                if (isCardView) {
+                    renderCardViewFromData(filteredData);
+                }
+            } else {
+                // Reset to full data
+                if (table) {
+                    table.replaceData(currentData);
+                }
+                
+                // Update card view if active
+                if (isCardView) {
+                    renderCardViewFromData(currentData);
+                }
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('globalSearch').value = '';
+            
+            // Reset to full data
+            if (table) {
+                table.replaceData(currentData);
+            }
+            
+            // Update card view if active
+            if (isCardView) {
+                renderCardViewFromData(currentData);
+            }
+        }
+
+        function toggleView() {
+            isCardView = document.getElementById('viewToggle').checked;
+            
+            if (isCardView) {
+                showCardView();
+            } else {
+                showTableView();
+                // Ensure table has the current data (filtered or unfiltered)
+                const searchTerm = document.getElementById('globalSearch').value.toLowerCase();
+                if (searchTerm) {
+                    // Apply search filter to table
+                    const filteredData = currentData.filter(row => {
+                        for (let field in row) {
+                            if (field !== '_rowId' && row[field] && row[field].toString().toLowerCase().includes(searchTerm)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
+                    table.replaceData(filteredData);
+                } else {
+                    // Show all data
+                    table.replaceData(currentData);
+                }
+            }
+        }
+
+        function showTableView() {
+            document.getElementById('tableView').classList.remove('d-none');
+            document.getElementById('cardView').classList.add('d-none');
+        }
+
+        function showCardView() {
+            document.getElementById('tableView').classList.add('d-none');
+            document.getElementById('cardView').classList.remove('d-none');
+            renderCardView();
+        }
+
+        function renderCardView() {
+            const data = table ? table.getData() : currentData;
+            renderCardViewFromData(data);
+        }
+
+        function renderCardViewFromData(data) {
+            const container = document.getElementById('cardContainer');
+            container.innerHTML = '';
+            
+            // Debug: log the filtered data
+            console.log('Data for card view:', data);
+            
+            if (data.length === 0) {
+                container.innerHTML = '<div class="col-12"><div class="alert alert-info text-center">No records found matching your search.</div></div>';
+                return;
+            }
+            
+            data.forEach((row) => {
+                const card = createDataCard(row, row._rowId);
+                container.appendChild(card);
+            });
+        }
+
+        function createDataCard(data, rowId) {
+            const col = document.createElement('div');
+            col.className = 'col-lg-4 col-md-6 mb-3';
+            
+            const card = document.createElement('div');
+            card.className = 'data-card';
+            card.dataset.rowId = rowId;
+            
+            // Card header
+            const header = document.createElement('div');
+            header.className = 'card-header';
+            header.innerHTML = `<i class="bi bi-card-list"></i> Record #${rowId}`;
+            card.appendChild(header);
+            
+            // Card body with fields
+            currentColumns.forEach(col => {
+                const fieldPair = document.createElement('div');
+                fieldPair.className = 'field-pair';
+                
+                const fieldName = document.createElement('div');
+                fieldName.className = 'field-name';
+                fieldName.textContent = col.title;
+                
+                const fieldValue = document.createElement('div');
+                fieldValue.className = 'field-value';
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = data[col.field] || '';
+                input.dataset.field = col.field;
+                input.addEventListener('input', (e) => {
+                    updateDataField(rowId, col.field, e.target.value);
+                    // Show suggestions as user types
+                    showFieldSuggestions(input, col.field, e.target.value);
+                });
+                
+                input.addEventListener('blur', () => {
+                    // Clear suggestions when leaving field
+                    setTimeout(() => {
+                        const existingDropdown = document.querySelector('.suggestions-dropdown');
+                        if (existingDropdown) {
+                            existingDropdown.remove();
+                        }
+                    }, 200); // Small delay to allow click on suggestion first
+                });
+                
+                input.addEventListener('keydown', (e) => {
+                    // Clear suggestions on tab, enter, escape
+                    if (e.key === 'Tab' || e.key === 'Enter' || e.key === 'Escape') {
+                        const existingDropdown = document.querySelector('.suggestions-dropdown');
+                        if (existingDropdown) {
+                            existingDropdown.remove();
+                        }
+                    }
+                });
+                
+                fieldValue.appendChild(input);
+                fieldPair.appendChild(fieldName);
+                fieldPair.appendChild(fieldValue);
+                card.appendChild(fieldPair);
+            });
+            
+            // Card actions
+            const actions = document.createElement('div');
+            actions.className = 'card-actions';
+            actions.innerHTML = `
+                <button class="btn btn-sm btn-outline-danger me-2" onclick="deleteCard(${rowId})">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="duplicateCard(${rowId})">
+                    <i class="bi bi-copy"></i> Duplicate
+                </button>
+            `;
+            card.appendChild(actions);
+            
+            col.appendChild(card);
+            return col;
+        }
+
+        function updateDataField(rowId, field, value) {
+            // Find the row in currentData by _rowId
+            const rowIndex = currentData.findIndex(row => row._rowId === rowId);
+            if (rowIndex !== -1) {
+                currentData[rowIndex][field] = value;
+                
+                // Update table if it exists
+                if (table) {
+                    const tableData = table.getData();
+                    const tableRowIndex = tableData.findIndex(row => row._rowId === rowId);
+                    if (tableRowIndex !== -1) {
+                        tableData[tableRowIndex][field] = value;
+                        table.replaceData(tableData);
+                    }
+                }
+            }
+        }
+
+        function showFieldSuggestions(input, field, currentValue) {
+            // Remove existing suggestions
+            const existingDropdown = document.querySelector('.suggestions-dropdown');
+            if (existingDropdown) {
+                existingDropdown.remove();
+            }
+            
+            // Don't show suggestions if input is empty or too short
+            if (!currentValue || currentValue.length < 1) {
+                return;
+            }
+            
+            // Get unique values for this field from existing data
+            const values = currentData
+                .map(row => row[field])
+                .filter(val => val !== null && val !== undefined && val.toString().trim() !== '');
+            
+            // Count frequency of each value
+            const frequency = {};
+            values.forEach(val => {
+                const key = val.toString().toLowerCase();
+                frequency[key] = (frequency[key] || 0) + 1;
+            });
+            
+            // Filter suggestions that match current input
+            const matchingSuggestions = Object.keys(frequency)
+                .filter(val => val.includes(currentValue.toLowerCase()))
+                .sort((a, b) => frequency[b] - frequency[a]) // Sort by frequency (most common first)
+                .slice(0, 5); // Limit to 5 suggestions
+            
+            if (matchingSuggestions.length === 0) {
+                return;
+            }
+            
+            // Create suggestions dropdown
+            const dropdown = document.createElement('div');
+            dropdown.className = 'suggestions-dropdown';
+            
+            matchingSuggestions.forEach(suggestion => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.innerHTML = `
+                    <span class="suggestion-text">${suggestion}</span>
+                    <span class="suggestion-count">(${frequency[suggestion]})</span>
+                `;
+                
+                item.addEventListener('click', () => {
+                    input.value = suggestion;
+                    updateDataField(parseInt(input.closest('.data-card').dataset.rowId), field, suggestion);
+                    dropdown.remove();
+                });
+                
+                dropdown.appendChild(item);
+            });
+            
+            // Position dropdown below the input
+            const rect = input.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
+            dropdown.style.left = (rect.left + window.scrollX) + 'px';
+            dropdown.style.width = rect.width + 'px';
+            
+            // Add to document
+            document.body.appendChild(dropdown);
+            
+            // Hide dropdown when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function hideDropdown(e) {
+                    if (!dropdown.contains(e.target)) {
+                        dropdown.remove();
+                        document.removeEventListener('click', hideDropdown);
+                    }
+                });
+            }, 100);
+        }
+
+        function deleteCard(rowId) {
+            // Find and remove from currentData
+            const rowIndex = currentData.findIndex(row => row._rowId === rowId);
+            if (rowIndex !== -1) {
+                currentData.splice(rowIndex, 1);
+            }
+            
+            // Find and remove from table
+            if (table) {
+                const tableData = table.getData();
+                const tableRowIndex = tableData.findIndex(row => row._rowId === rowId);
+                if (tableRowIndex !== -1) {
+                    tableData.splice(tableRowIndex, 1);
+                    table.replaceData(tableData);
+                }
+            }
+            
+            if (isCardView) {
+                renderCardView();
+            }
+            
+            // Update row count
+            document.getElementById('rowCount').textContent = currentData.length;
+        }
+
+        function duplicateCard(rowId) {
+            // Find the original row
+            const originalRow = currentData.find(row => row._rowId === rowId);
+            if (originalRow) {
+                const newRow = {...originalRow, _rowId: nextRowId++};
+                
+                // Add to currentData at the beginning
+                currentData.unshift(newRow);
+                
+                // Add to table at the top
+                if (table) {
+                    table.addRow(newRow, true);
+                }
+                
+                if (isCardView) {
+                    renderCardView();
+                }
+                
+                // Update row count
+                document.getElementById('rowCount').textContent = currentData.length;
+            }
+        }
+
+        function addNewRow() {
+            const newRow = {};
+            currentColumns.forEach(col => {
+                newRow[col.field] = '';
+            });
+            newRow._rowId = nextRowId++;
+            
+            if (table) {
+                table.addRow(newRow, true); // true adds at the top
+            }
+            currentData.unshift(newRow); // unshift adds at the beginning
+            
+            if (isCardView) {
+                renderCardView();
+            }
+            
+            // Update row count
+            document.getElementById('rowCount').textContent = currentData.length;
+        }
+
+        function downloadCSV() {
+            if (table) {
+                const data = table.getData();
+                
+                fetch('/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        data: data,
+                        filename: originalFileName
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    }
+                    throw new Error('Download failed');
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = originalFileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => {
+                    showError('Error downloading file: ' + error.message);
+                });
+            }
+        }
+
+        function showSaveModal() {
+            if (!currentData || currentData.length === 0) {
+                showError('No data to save. Please upload a CSV file first.');
+                return;
+            }
+            
+            // Clear previous values
+            document.getElementById('saveName').value = '';
+            document.getElementById('saveDescription').value = '';
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('saveModal'));
+            modal.show();
+        }
+
+        function saveData() {
+            const name = document.getElementById('saveName').value.trim();
+            const description = document.getElementById('saveDescription').value.trim();
+            
+            if (!name) {
+                showError('Please enter a name for the saved data.');
+                return;
+            }
+            
+            const dataToSave = {
+                name: name,
+                description: description,
+                data: currentData,
+                columns: currentColumns
+            };
+            
+            fetch('/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dataToSave)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('saveModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    showSuccess(result.message);
+                } else {
+                    showError(result.error);
+                }
+            })
+            .catch(error => {
+                showError('Error saving data: ' + error.message);
+            });
+        }
+
+        function showLoadModal() {
+            // Load saved data list
+            fetch('/saved')
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    displaySavedData(result.saved_data);
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('loadModal'));
+                    modal.show();
+                } else {
+                    showError(result.error);
+                }
+            })
+            .catch(error => {
+                showError('Error loading saved data: ' + error.message);
+            });
+        }
+
+        function displaySavedData(savedData) {
+            const container = document.getElementById('savedDataList');
+            container.innerHTML = '';
+            
+            if (savedData.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-4">No saved data found.</div>';
+                return;
+            }
+            
+            savedData.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'list-group-item list-group-item-action';
+                itemDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${item.name}</h6>
+                            <p class="mb-1 text-muted small">${item.description || 'No description'}</p>
+                            <small class="text-muted">Created: ${new Date(item.created_at).toLocaleString()}</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="loadSavedData(${item.id})">
+                                <i class="bi bi-folder-open"></i> Load
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteSavedData(${item.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+
+        function loadSavedData(saveId) {
+            fetch(`/load/${saveId}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('loadModal'));
+                    modal.hide();
+                    
+                    // Load data into the application
+                    displayTable(result.data, result.columns, result.name);
+                    originalFileName = result.name;
+                    
+                    showSuccess(`Loaded "${result.name}" successfully.`);
+                } else {
+                    showError(result.error);
+                }
+            })
+            .catch(error => {
+                showError('Error loading saved data: ' + error.message);
+            });
+        }
+
+        function deleteSavedData(saveId) {
+            if (!confirm('Are you sure you want to delete this saved data?')) {
+                return;
+            }
+            
+            fetch(`/delete/${saveId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Refresh the list
+                    showLoadModal();
+                    showSuccess(result.message);
+                } else {
+                    showError(result.error);
+                }
+            })
+            .catch(error => {
+                showError('Error deleting saved data: ' + error.message);
+            });
+        }
+
+        function showSuccess(message) {
+            // Create success alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i class="bi bi-check-circle"></i>
+                <strong>Success:</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Insert after the file info section
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.parentNode.insertBefore(alertDiv, fileInfo.nextSibling);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        function clearTable() {
+            if (table) {
+                table.destroy();
+                table = null;
+            }
+            
+            currentData = [];
+            originalFileName = '';
+            
+            // Reset UI
+            document.getElementById('uploadSection').classList.remove('d-none');
+            document.getElementById('tableSection').classList.add('d-none');
+            document.getElementById('fileInput').value = '';
+            hideError();
+        }
+
+        function showLoading(show) {
+            const loadingCard = document.getElementById('loadingCard');
+            if (show) {
+                loadingCard.classList.remove('d-none');
+            } else {
+                loadingCard.classList.add('d-none');
+            }
+        }
+
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            errorMessage.textContent = message;
+            errorAlert.classList.remove('d-none');
+        }
+
+        function hideError() {
+            document.getElementById('errorAlert').classList.add('d-none');
+        }
+    </script>
+</body>
+</html>
