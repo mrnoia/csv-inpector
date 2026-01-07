@@ -26,19 +26,169 @@ git commit -m "Initial commit: CSV Inspector with SQLite database"
 5. **Initialize**: Choose "Add a README file" (we already have one)
 6. **Click "Create repository"**
 
-## Push to GitHub
+## Clone and Setup on New Machine
 
-1. **Add remote origin:**
+### **1. Clone Repository:**
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/csv-inspector.git
+git clone https://github.com/mrnoia/csv-inpector.git
+cd csv-inspector
 ```
-Replace `YOUR_USERNAME` with your actual GitHub username.
 
-2. **Push to GitHub:**
+### **2. Setup Python Environment:**
+
+#### **Option A: Using UV (Recommended)**
 ```bash
-git branch -M main
-git push -u origin main
+# Install UV if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install dependencies
+uv sync
+
+# Run the application
+uv run python app.py
 ```
+
+#### **Option B: Using pip**
+```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On Windows
+venv\Scripts\activate
+# On Mac/Linux
+source venv/bin/activate
+
+# Install dependencies
+pip install flask pandas werkzeug
+
+# Run the application
+python app.py
+```
+
+#### **Option C: Using system Python**
+```bash
+# Install dependencies globally
+pip install flask pandas werkzeug
+
+# Run the application
+python app.py
+```
+
+### **3. Database Setup:**
+
+The SQLite database will be created automatically when you first run the application:
+- **Location**: `csv_inspector.db` in the project directory
+- **Auto-initialization**: Database and tables are created on first run
+- **No manual setup needed**: Just run the app
+
+### **4. Access the Application:**
+
+Open your browser and navigate to:
+- **Local**: `http://localhost:5000`
+- **Network**: `http://YOUR_IP:5000` (replace with your machine's IP)
+
+### **5. Development Workflow:**
+
+```bash
+# Start development server
+uv run python app.py
+
+# The server will auto-reload on file changes
+# Access at http://localhost:5000
+
+# Check git status
+git status
+
+# Add new changes
+git add .
+
+# Commit changes
+git commit -m "Your commit message"
+
+# Push to GitHub
+git push origin main
+```
+
+### **6. Troubleshooting:**
+
+#### **Port already in use:**
+```bash
+# Kill existing Python processes
+pkill -f "python app.py"
+
+# Or use different port
+uv run python app.py --port 5001
+```
+
+#### **Database issues:**
+```bash
+# Remove corrupted database
+rm csv_inspector.db
+
+# Application will recreate it on next run
+```
+
+#### **Dependency issues:**
+```bash
+# Clear cache and reinstall
+uv cache clean
+uv sync
+
+# Check Python version
+python --version  # Should be 3.12+
+```
+
+### **7. Project Structure After Clone:**
+
+```
+csv-inspector/
+├── app.py                 # Flask application
+├── templates/
+│   └── index.html        # Frontend template
+├── pyproject.toml          # Project dependencies
+├── README.md              # Project documentation
+├── .gitignore             # Git exclusions
+├── GIT_SETUP.md           # This setup guide
+└── csv_inspector.db       # SQLite database (created automatically)
+```
+
+### **8. Environment Variables (Optional):**
+
+Create a `.env` file for configuration:
+```bash
+# Flask configuration
+FLASK_ENV=development
+FLASK_DEBUG=True
+FLASK_HOST=0.0.0.0
+FLASK_PORT=5000
+
+# Database configuration
+DATABASE_URL=sqlite:///csv_inspector.db
+```
+
+### **9. Production Deployment:**
+
+For production deployment, consider:
+- **WSGI Server**: Use Gunicorn or uWSGI
+- **Environment Variables**: Set FLASK_ENV=production
+- **Database Backup**: Regular database backups
+- **Security**: Use HTTPS and secure headers
+
+### **10. Quick Start Commands:**
+
+```bash
+# Clone and setup (one command)
+git clone https://github.com/mrnoia/csv-inpector.git && cd csv-inspector && uv sync && uv run python app.py
+
+# Or step by step
+git clone https://github.com/mrnoia/csv-inpector.git
+cd csv-inspector
+uv sync
+uv run python app.py
+```
+
+This setup gets you running quickly on any new machine!
 
 ## Project Structure for Git
 
